@@ -16,6 +16,9 @@ kas saglabā izmainītā objekta kodu un tad atļauj jaunam izmaiņam uzstādīt
 installation
 ==============
 skripta uzstādīšanas secība:
+
 1) `table.sql`
+
 2) `package.sql`
+
 3) `trigger.sql`
