@@ -12,3 +12,10 @@ Koda darbības princips:
 Tiek izveidots shēmas trigeris `t_plsql_backup`. Labi, ka iekš oracle tādi trigeri ir iespējami.
 Kā tiek pārkompilēts kāds shēmas objekts tā trigeris izpilda `plsql_backup.backup` procedūru,
 kas saglabā izmainītā objekta kodu un tad atļauj jaunam izmaiņam uzstādīties serverī.
+
+installation
+==============
+skripta uzstādīšanas secība:
+1) `table.sql`
+2) `package.sql`
+3) `trigger.sql`
