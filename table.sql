@@ -2,7 +2,6 @@ CREATE TABLE plsql_archive
 (
     name      VARCHAR2 (128 BYTE) NULL,
     type      VARCHAR2 (19 BYTE) NULL,
-    owner     VARCHAR2 (32 BYTE) NULL,
     created   DATE NULL,
     status    VARCHAR2 (7 BYTE) NULL,
     src       CLOB NULL,

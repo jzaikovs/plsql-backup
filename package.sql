@@ -3,7 +3,7 @@ AS
     /*
     Procedūra kas tiek izsaukta pie objektu pārkompilācijas pateicoties shēmas trigerim
     */
-    PROCEDURE backup (p_name IN VARCHAR2, p_type IN VARCHAR2, p_owner IN VARCHAR2);
+    PROCEDURE backup (p_name IN VARCHAR2, p_type IN VARCHAR2);
 END plsql_backup;
 /
 
@@ -31,17 +31,12 @@ AS
     /*
     Funkcija versijas arhivēšanai
     */
-    PROCEDURE backup (p_name IN VARCHAR2, p_type IN VARCHAR2, p_owner IN VARCHAR2)
+    PROCEDURE backup (p_name IN VARCHAR2, p_type IN VARCHAR2)
     IS
-        l_code       CLOB;
-
         v_revision   plsql_archive%ROWTYPE;
-        l_rowid      ROWID;
-        l_errors     CLOB;
     BEGIN
         v_revision.name := p_name;
-        v_revision.TYPE := p_type;
-        v_revision.owner := p_owner;
+        v_revision.type := p_type;        
         v_revision.created := SYSDATE;
         v_revision.err := '';
 
@@ -60,7 +55,9 @@ AS
             SELECT status
               INTO v_revision.status
               FROM all_objects
-             WHERE object_name = p_name AND object_type = p_type;
+             WHERE object_name = p_name 
+                AND object_type = p_type
+                AND owner = USER;
         EXCEPTION
             WHEN OTHERS THEN
                 v_revision.err := v_revision.err || SQLERRM ();
