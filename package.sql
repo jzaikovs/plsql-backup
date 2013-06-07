@@ -9,9 +9,17 @@ END plsql_backup;
 
 CREATE OR REPLACE PACKAGE BODY plsql_backup
 AS
-    /*
-    Funkcija objekta koda iegūšanai
-    */
+    /**
+     * Procedūra SQL auditiem.
+     */
+    PROCEDURE log ( p_sql IN VARCHAR2) AS
+    BEGIN
+        NULL; --TODO: implement    
+    END;
+
+    /**
+     * Funkcija objekta koda iegūšanai.
+     */
     FUNCTION get_code (p_name IN VARCHAR2, p_type IN VARCHAR2)
         RETURN CLOB
     IS
