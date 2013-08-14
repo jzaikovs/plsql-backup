@@ -1,22 +1,25 @@
 CREATE OR REPLACE PACKAGE PUNS2.plsql_backup
 AS
     -- Procedūra kas tiek izsaukta pie objektu pārkompilācijas pateicoties shēmas trigerim
-    PROCEDURE backup (p_name IN VARCHAR2, p_type IN VARCHAR2, p_owner IN VARCHAR2, p_code IN VARCHAR2);
+    PROCEDURE backup (p_name        IN plsql_archive.name%TYPE,
+                      p_type        IN plsql_archive.type%TYPE,
+                      p_owner       IN plsql_archive.owner%TYPE,
+                      p_new_src     IN plsql_archive.new_src%TYPE);
 
-    PROCEDURE log (p_sql IN VARCHAR2);
+    PROCEDURE log (p_sql plsql_archive.new_src%TYPE, p_type plsql_archive.TYPE%TYPE);
 END plsql_backup;
 /
 
 CREATE OR REPLACE PACKAGE BODY PUNS2.plsql_backup
 AS
     -- Procedūra SQL auditiem.
-    PROCEDURE log (p_sql IN VARCHAR2)
+    PROCEDURE log (p_sql plsql_archive.new_src%TYPE, p_type plsql_archive.type%TYPE)
     AS
         v_revision   plsql_archive%ROWTYPE;
     BEGIN
-        v_revision.type := 'ALTER';
+        v_revision.type := p_type;
         v_revision.created := SYSDATE;
-        v_revision.src := p_sql;
+        v_revision.new_src := p_sql;
         v_revision.osuser := SYS_CONTEXT ('USERENV', 'OS_USER');
         v_revision.ip := SYS_CONTEXT ('USERENV', 'IP_ADDRESS');
 
@@ -42,22 +45,27 @@ AS
     END get_code;
 
     -- Funkcija versijas arhivēšanai
-    PROCEDURE backup (p_name IN VARCHAR2, p_type IN VARCHAR2, p_owner IN VARCHAR2, p_code IN VARCHAR2)
+    PROCEDURE backup (p_name        IN plsql_archive.name%TYPE,
+                      p_type        IN plsql_archive.type%TYPE,
+                      p_owner       IN plsql_archive.owner%TYPE,
+                      p_new_src     IN plsql_archive.new_src%TYPE)
     IS
         v_revision   plsql_archive%ROWTYPE;
     BEGIN
         v_revision.name := p_name;
         v_revision.type := p_type;
+        v_revision.owner := p_owner;
         v_revision.created := SYSDATE;
         v_revision.err := '';
         v_revision.osuser := SYS_CONTEXT ('USERENV', 'OS_USER');
         v_revision.ip := SYS_CONTEXT ('USERENV', 'IP_ADDRESS');
+        v_revision.new_src := p_new_src;        
 
         BEGIN
-            v_revision.src := DBMS_METADATA.get_ddl (p_type, p_name, p_owner);
+            v_revision.old_src := DBMS_METADATA.get_ddl (p_type, p_name, p_owner);
         EXCEPTION
             WHEN OTHERS THEN
-                v_revision.src := get_code (p_name, p_type) || p_code;                
+                v_revision.old_src := get_code (p_name, p_type);
                 v_revision.err := SQLERRM ();
         END;
 

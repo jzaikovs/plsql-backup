@@ -2,28 +2,28 @@ CREATE OR REPLACE TRIGGER t_plsql_backup
     BEFORE CREATE OR ALTER OR DROP
     ON SCHEMA
 DECLARE
-    oper       VARCHAR2(32000);
+    oper       VARCHAR2 (32000);
     sql_text   ora_name_list_t;
-    i          PLS_INTEGER;
+    n          NUMBER;
+    v_stmt     VARCHAR2 (2000);
 BEGIN
+    oper := ora_sysevent;
+    n := ora_sql_txt (sql_text);
 
-    SELECT ora_sysevent INTO oper FROM DUAL;
+    FOR i IN 1 .. n LOOP
+        v_stmt := v_stmt || sql_text (i);
+    END LOOP;
 
-    i := sql_txt(sql_text);
-
-    -- on create
-    IF oper IN ('CREATE') THEN    
+    IF oper IN ('CREATE') THEN
         IF ora_dict_obj_type IN ('PACKAGE', 'PACKAGE BODY', 'TRIGGER', 'FUNCTION', 'PROCEDURE', 'TABLE') THEN
-            plsql_backup.backup (ora_dict_obj_name, ora_dict_obj_type, ora_dict_obj_owner, sql_text(1));
+            plsql_backup.backup (ora_dict_obj_name, ora_dict_obj_type, ora_dict_obj_owner, v_stmt);
         END IF;
-    ELSIF oper = ('ALTER') OR oper = ('DROP') THEN
-        -- on alter
-        plsql_backup.log(sql_text(1));
-        plsql_backup.backup (ora_dict_obj_name, ora_dict_obj_type, ora_dict_obj_owner, sql_text(1));        
-    END IF;    
-
+    ELSIF oper IN ('ALTER', 'DROP') THEN
+        plsql_backup.log (sql_text (1), oper);
+        plsql_backup.backup (ora_dict_obj_name, ora_dict_obj_type, ora_dict_obj_owner, v_stmt);
+    END IF;
 EXCEPTION
     WHEN OTHERS THEN
-        NULL;    
+        NULL;
 END t_plsql_backup;
 /
