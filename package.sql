@@ -1,5 +1,9 @@
 CREATE OR REPLACE PACKAGE PUNS2.plsql_backup
 AS
+    /*
+        The MIT License (MIT)
+        Copyright (c) 2013 Jānis Zaikovs
+    */
     -- Procedūra kas tiek izsaukta pie objektu pārkompilācijas pateicoties shēmas trigerim
     PROCEDURE backup (p_name        IN plsql_archive.name%TYPE,
                       p_type        IN plsql_archive.type%TYPE,
@@ -12,6 +16,11 @@ END plsql_backup;
 
 CREATE OR REPLACE PACKAGE BODY PUNS2.plsql_backup
 AS
+    /*
+        The MIT License (MIT)
+        Copyright (c) 2013 Jānis Zaikovs
+    */
+   
     -- Procedūra SQL auditiem.
     PROCEDURE log (p_sql plsql_archive.new_src%TYPE, p_type plsql_archive.type%TYPE)
     AS
