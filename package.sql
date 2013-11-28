@@ -1,4 +1,4 @@
-CREATE OR REPLACE PACKAGE PUNS2.plsql_backup
+CREATE OR REPLACE PACKAGE plsql_backup
 AS
     /*
         The MIT License (MIT)
@@ -14,7 +14,7 @@ AS
 END plsql_backup;
 /
 
-CREATE OR REPLACE PACKAGE BODY PUNS2.plsql_backup
+CREATE OR REPLACE PACKAGE BODY plsql_backup
 AS
     /*
         The MIT License (MIT)
