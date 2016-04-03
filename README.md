@@ -24,8 +24,3 @@ skripta uzstādīšanas secība:
 
 3) `trigger.sql`
 
-
-TODO
-==============
-
-- [ ] Ieviest koda versiju salīdzināšanu, lai neglabātu kopiju vienādiem kodiem (piemēra, ja tiek pārkompilētas pakotnes no IVALID stāvokļa)

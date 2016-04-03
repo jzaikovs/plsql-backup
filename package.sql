@@ -2,15 +2,14 @@ CREATE OR REPLACE PACKAGE plsql_backup
 AS
     /*
         The MIT License (MIT)
-        Copyright (c) 2014 Jānis Zaikovs
+        Copyright (c) 2016 Jānis Zaikovs
     */
     -- Procedūra kas tiek izsaukta pie objektu pārkompilācijas pateicoties shēmas trigerim
     PROCEDURE backup (p_name        IN plsql_archive.name%TYPE,
                       p_type        IN plsql_archive.type%TYPE,
                       p_owner       IN plsql_archive.owner%TYPE,
-                      p_new_src     IN plsql_archive.new_src%TYPE);
-
-    PROCEDURE log (p_sql plsql_archive.new_src%TYPE, p_type plsql_archive.type%TYPE);
+                      p_new_src     IN plsql_archive.new_src%TYPE,
+                      p_action      IN plsql_archive.action%TYPE);
 END plsql_backup;
 /
 
@@ -18,22 +17,8 @@ CREATE OR REPLACE PACKAGE BODY plsql_backup
 AS
     /*
         The MIT License (MIT)
-        Copyright (c) 2014 Jānis Zaikovs
+        Copyright (c) 2016 Jānis Zaikovs
     */
-    -- Procedūra SQL auditiem.
-    PROCEDURE log (p_sql plsql_archive.new_src%TYPE, p_type plsql_archive.type%TYPE)
-    AS
-        v_revision   plsql_archive%ROWTYPE;
-    BEGIN
-        v_revision.type := p_type;
-        v_revision.created := SYSDATE;
-        v_revision.new_src := p_sql;
-        v_revision.osuser := SYS_CONTEXT ('USERENV', 'OS_USER');
-        v_revision.ip := SYS_CONTEXT ('USERENV', 'IP_ADDRESS');
-
-        INSERT INTO plsql_archive
-             VALUES v_revision;
-    END;
 
     -- Funkcija objekta koda iegūšanai.
     FUNCTION get_code (p_name IN VARCHAR2, p_type IN VARCHAR2)
@@ -43,7 +28,7 @@ AS
     BEGIN
         FOR src IN (  SELECT text
                         FROM user_source
-                       WHERE NAME = p_name AND type = p_type
+                       WHERE name = p_name AND type = p_type
                     ORDER BY line ASC)
         LOOP
             v_code := v_code || src.text;
@@ -56,52 +41,61 @@ AS
     PROCEDURE backup (p_name      IN plsql_archive.name%TYPE,
                       p_type      IN plsql_archive.type%TYPE,
                       p_owner     IN plsql_archive.owner%TYPE,
-                      p_new_src   IN plsql_archive.new_src%TYPE)
+                      p_new_src   IN plsql_archive.new_src%TYPE,
+                      p_action    IN plsql_archive.action%TYPE)
     IS
-        v_revision   plsql_archive%ROWTYPE;
+        r_rev   plsql_archive%ROWTYPE;
+        v_type  plsql_archive.type%TYPE;
     BEGIN
-        v_revision.name := p_name;
-        v_revision.type := p_type;
-        v_revision.owner := p_owner;
-        v_revision.created := SYSDATE;
-        v_revision.err := '';
-        v_revision.osuser := SYS_CONTEXT ('USERENV', 'OS_USER');
-        v_revision.ip := SYS_CONTEXT ('USERENV', 'IP_ADDRESS');
-        v_revision.new_src := p_new_src;
-
+        r_rev.name := p_name;
+        r_rev.type := p_type;
+        r_rev.owner := p_owner;
+        r_rev.created := SYSDATE;
+        r_rev.err := '';
+        r_rev.osuser := SYS_CONTEXT ('USERENV', 'OS_USER');
+        r_rev.ip := SYS_CONTEXT ('USERENV', 'IP_ADDRESS');
+        r_rev.new_src := p_new_src;
+        r_rev.id := seq_plsql_archive.nextval;     
+        r_rev.action := p_action;
+        
+        v_type := r_rev.type;
+        IF v_type = 'PACKAGE' THEN 
+            v_type := 'PACKAGE_SPEC';
+        END IF;
+                
         BEGIN
-            v_revision.old_src := DBMS_METADATA.get_ddl (REPLACE (v_revision.type, ' ', '_'), v_revision.name, v_revision.owner);
+            r_rev.old_src := DBMS_METADATA.get_ddl (REPLACE (v_type, ' ', '_'), r_rev.name, r_rev.owner);
         EXCEPTION
             WHEN OTHERS THEN
-                v_revision.old_src := get_code (v_revision.name, v_revision.type);
-                v_revision.err := SQLERRM ();
+                r_rev.old_src := get_code (r_rev.name, r_rev.type);
+                r_rev.err := SQLERRM ();
         END;
 
         BEGIN
             SELECT status
-              INTO v_revision.status
+              INTO r_rev.status
               FROM all_objects
-             WHERE object_name = v_revision.name AND object_type = v_revision.type AND owner = v_revision.owner;
+             WHERE object_name = r_rev.name AND object_type = r_rev.type AND owner = r_rev.owner;
         EXCEPTION
             WHEN OTHERS THEN
-                v_revision.err := v_revision.err || SQLERRM ();
+                r_rev.err := r_rev.err || SQLERRM ();
         END;
 
+        -- veicam koda salīdzīnāšanu ar iepriekšējo revīziju, ja kods ir nav mainījies tad reviziju nesaglabāt
+        -- todo: varētu realizēt ideju, ka tikai diff ar iepriekšējo revīziju tiek saglabāts
         FOR i IN (  SELECT *
                       FROM plsql_archive
-                     WHERE name = v_revision.name AND type = v_revision.type AND owner = v_revision.owner
+                     WHERE name = r_rev.name AND type = r_rev.type AND owner = r_rev.owner
                   ORDER BY created DESC)
         LOOP
-            IF DBMS_LOB.compare (i.old_src, v_revision.old_src) = 0 THEN
+            IF DBMS_LOB.compare (i.old_src, r_rev.old_src) = 0 THEN
                 RETURN;
             END IF;
 
             EXIT;
         END LOOP;
 
-        --ievietojam arhīvā veco kodu
-        INSERT INTO plsql_archive
-             VALUES v_revision;
+        INSERT INTO plsql_archive VALUES r_rev;
     END backup;
 END plsql_backup;
 /
